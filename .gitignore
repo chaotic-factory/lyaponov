@@ -1,0 +1,25 @@
+# keys
+.env
+
+# Node/Vite frontend
+frontend/build/
+frontend/node_modules/
+frontend/.vite/
+frontend/.DS_Store
+node_modules
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# VSCode and IDE files
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db

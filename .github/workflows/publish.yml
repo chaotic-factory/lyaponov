@@ -1,0 +1,51 @@
+name: Build and Publish Package
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Only runs on version tags (e.g., v1.0.0)
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Frontend Build ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Build frontend
+        working-directory: lyapunov/frontend
+        run: |
+          pnpm install
+          pnpm run build
+
+      # --- Python Package Build ---
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install packaging tools
+        run: |
+          pip install build twine
+
+      - name: Build package
+        run: |
+          python -m build
+
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_will TOKEN }}
+        run: |
+          twine upload dist/*
