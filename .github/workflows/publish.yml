@@ -26,7 +26,13 @@ jobs:
         run: |
           pip install build twine bump2version
 
-      # ---- Bump Version ----
+      # ---- Configure Git identity ----
+      - name: Set up Git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      # ---- Determine bump type ----
       - name: Determine bump type
         id: bump
         run: |
@@ -38,6 +44,7 @@ jobs:
             echo "type=patch" >> $GITHUB_OUTPUT
           fi
 
+      # ---- Bump version ----
       - name: Bump version
         run: |
           bump2version ${{ steps.bump.outputs.type }}
