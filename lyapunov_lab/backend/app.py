@@ -81,7 +81,7 @@ async def start_udp_listener():
 # ============================================================
 # WEBSOCKET STREAM ENDPOINT
 # ============================================================
-@app.websocket("/stream")
+@app.websocket("/api/stream")
 async def websocket_stream(websocket: WebSocket):
     await websocket.accept()
     clients.add(websocket)
