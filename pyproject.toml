@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lyapunov-lab"
-version = "0.1.4"
+version = "0.1.5"
 description = "Chaos Analyzer hardware dashboard"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.8"
