@@ -1,51 +1,58 @@
-name: Build and Publish Package
+name: Bump and Publish Package
 
 on:
   push:
-    tags:
-      - "v*.*.*" # Only runs on version tags (e.g., v1.0.0)
+    branches: [main]
 
 jobs:
-  build-publish:
+  bump-publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to push version bump
+      id-token: write # needed for PyPI OIDC (optional)
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-
-      # --- Frontend Build ---
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          fetch-depth: 0
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
-      - name: Build frontend
-        working-directory: lyapunov/frontend
-        run: |
-          pnpm install
-          pnpm run build
-
-      # --- Python Package Build ---
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.x"
 
-      - name: Install packaging tools
+      - name: Install dependencies
         run: |
-          pip install build twine
+          pip install build twine bump2version
 
+      # ---- Bump Version ----
+      - name: Determine bump type
+        id: bump
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"#major"* ]]; then
+            echo "type=major" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.head_commit.message }}" == *"#minor"* ]]; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump version
+        run: |
+          bump2version ${{ steps.bump.outputs.type }}
+
+      - name: Push changes
+        run: |
+          git push --follow-tags
+
+      # ---- Build & Publish ----
       - name: Build package
-        run: |
-          python -m build
+        run: python -m build
 
       - name: Upload to PyPI
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_will TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           twine upload dist/*
