@@ -63,13 +63,18 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
-
       # ---- Build frontend static files ----
       - name: Build frontend
         working-directory: lyapunov_lab/frontend
         run: |
           pnpm install
           pnpm run build
+
+      # ---- Copy frontend build into Python package ----
+      - name: Copy frontend build into backend package
+        run: |
+          mkdir -p lyapunov_lab/backend/frontend
+          cp -r lyapunov_lab/frontend/out lyapunov_lab/backend/frontend/
 
       # ---- Build & Publish Python package ----
       - name: Build package
