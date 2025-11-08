@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Card,
   CardContent,
@@ -8,9 +7,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, ExternalLink, Mail } from "lucide-react";
+import { BookOpen, ExternalLink, Mail, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function HelpView() {
+  const router = useRouter();
   return (
     <div className="h-full overflow-auto p-6 space-y-6">
       <div>
@@ -52,6 +53,23 @@ export function HelpView() {
             >
               API Reference
               <ExternalLink className="h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Management</CardTitle>
+            <CardDescription>Remove stored recordings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              className="w-full justify-between bg-transparent"
+              variant="outline"
+              onClick={() => router.push("/help/delete-recordings")}
+            >
+              Delete Recordings
+              <Trash2 className="h-4 w-4" />
             </Button>
           </CardContent>
         </Card>
