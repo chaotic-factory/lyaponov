@@ -178,7 +178,105 @@ export const WS_URL =
 <li>Packet format: <strong>JSON array</strong> of objects with <code>x</code>, <code>y</code>, <code>z</code> (you can add <code>t</code>/<code>time</code>/<code>timestamp</code> too)</li>
 </ul>
 <h3 id="31-microcontroller-example-wifi-udp">3.1 Microcontroller example (Wi‑Fi UDP)</h3>
-<pre><code class="language-cpp">// (same as before)
+<pre><code class="language-cpp">#include &lt;WiFi.h&gt;
+#include &lt;WiFiUdp.h&gt;
+#include &lt;hardware/adc.h&gt;
+#include &lt;pico/multicore.h&gt;
+
+// ====== USER CONFIG ======
+const char* ssid       = &quot;YOUR_SSID&quot;;
+const char* password   = &quot;YOUR_PASSWORD&quot;;
+const char* destIP     = &quot;YOUR_COMPUTER_IP&quot;;  // FastAPI host IP
+const uint16_t destPort = 5005;               // UDP port FastAPI listens on
+// ==========================
+
+// Sampling config
+const int NUM_SAMPLES  = 100;   // per batch
+const int NUM_CHANNELS = 3;
+
+volatile uint16_t sampleBuffer[NUM_CHANNELS][NUM_SAMPLES];
+volatile bool bufferReady = false;
+
+WiFiUDP udp;
+
+// =========================================================
+//                 CORE 1 → ADC SAMPLING
+// =========================================================
+void core1_adcTask() {
+  adc_init();
+  adc_gpio_init(26);  // CH0
+  adc_gpio_init(27);  // CH1
+  adc_gpio_init(28);  // CH2
+  adc_set_clkdiv(0);  // fastest (~500 kS/s)
+
+  while (true) {
+    if (!bufferReady) {
+      for (int i = 0; i &lt; NUM_SAMPLES; i++) {
+        for (int ch = 0; ch &lt; NUM_CHANNELS; ch++) {
+          adc_select_input(ch);
+          sampleBuffer[ch][i] = adc_read();
+        }
+      }
+      bufferReady = true;
+    }
+    tight_loop_contents();
+  }
+}
+
+// =========================================================
+//                 CORE 0 → Wi-Fi + UDP TX
+// =========================================================
+void connectWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print(&quot;Connecting to Wi-Fi&quot;);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(&quot;.&quot;);
+  }
+  Serial.println(&quot;\nConnected!&quot;);
+  Serial.print(&quot;IP address: &quot;);
+  Serial.println(WiFi.localIP());
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  connectWiFi();
+  udp.begin(destPort);
+  multicore_launch_core1(core1_adcTask);
+
+  Serial.println(&quot;ADC sampling + JSON UDP streaming started...&quot;);
+}
+
+void loop() {
+  if (!bufferReady) return;
+
+  // Prepare JSON string batch
+  String jsonData = &quot;[&quot;;
+  for (int i = 0; i &lt; NUM_SAMPLES; i++) {
+    jsonData += &quot;{\&quot;x\&quot;:&quot;;
+    jsonData += sampleBuffer[0][i];
+    jsonData += &quot;,\&quot;y\&quot;:&quot;;
+    jsonData += sampleBuffer[1][i];
+    jsonData += &quot;,\&quot;z\&quot;:&quot;;
+    jsonData += sampleBuffer[2][i];
+    jsonData += &quot;}&quot;;
+    if (i &lt; NUM_SAMPLES - 1) jsonData += &quot;,&quot;;
+  }
+  jsonData += &quot;]&quot;;
+
+  // Send over UDP
+  udp.beginPacket(destIP, destPort);
+  udp.print(jsonData);
+  udp.endPacket();
+
+  Serial.printf(&quot;Sent %d samples (%d bytes) to %s:%d\n&quot;,
+                NUM_SAMPLES, jsonData.length(), destIP, destPort);
+
+  bufferReady = false;
+}
 </code></pre>
 <h3 id="32-desktop-simulator-csv-udp">3.2 Desktop simulator (CSV → UDP)</h3>
 <p>Use the included helper to test without hardware:</p>
@@ -396,5 +494,5 @@ docs/
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2025-11-11 10:20:25.033497+00:00
+Build Date UTC : 2025-11-11 10:26:34.843656+00:00
 -->
