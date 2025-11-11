@@ -76,7 +76,105 @@ export const WS_URL =
 ### 3.1 Microcontroller example (Wi‑Fi UDP)
 
 ```cpp
-// (same as before)
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <hardware/adc.h>
+#include <pico/multicore.h>
+
+// ====== USER CONFIG ======
+const char* ssid       = "YOUR_SSID";
+const char* password   = "YOUR_PASSWORD";
+const char* destIP     = "YOUR_COMPUTER_IP";  // FastAPI host IP
+const uint16_t destPort = 5005;               // UDP port FastAPI listens on
+// ==========================
+
+// Sampling config
+const int NUM_SAMPLES  = 100;   // per batch
+const int NUM_CHANNELS = 3;
+
+volatile uint16_t sampleBuffer[NUM_CHANNELS][NUM_SAMPLES];
+volatile bool bufferReady = false;
+
+WiFiUDP udp;
+
+// =========================================================
+//                 CORE 1 → ADC SAMPLING
+// =========================================================
+void core1_adcTask() {
+  adc_init();
+  adc_gpio_init(26);  // CH0
+  adc_gpio_init(27);  // CH1
+  adc_gpio_init(28);  // CH2
+  adc_set_clkdiv(0);  // fastest (~500 kS/s)
+
+  while (true) {
+    if (!bufferReady) {
+      for (int i = 0; i < NUM_SAMPLES; i++) {
+        for (int ch = 0; ch < NUM_CHANNELS; ch++) {
+          adc_select_input(ch);
+          sampleBuffer[ch][i] = adc_read();
+        }
+      }
+      bufferReady = true;
+    }
+    tight_loop_contents();
+  }
+}
+
+// =========================================================
+//                 CORE 0 → Wi-Fi + UDP TX
+// =========================================================
+void connectWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected!");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  connectWiFi();
+  udp.begin(destPort);
+  multicore_launch_core1(core1_adcTask);
+
+  Serial.println("ADC sampling + JSON UDP streaming started...");
+}
+
+void loop() {
+  if (!bufferReady) return;
+
+  // Prepare JSON string batch
+  String jsonData = "[";
+  for (int i = 0; i < NUM_SAMPLES; i++) {
+    jsonData += "{\"x\":";
+    jsonData += sampleBuffer[0][i];
+    jsonData += ",\"y\":";
+    jsonData += sampleBuffer[1][i];
+    jsonData += ",\"z\":";
+    jsonData += sampleBuffer[2][i];
+    jsonData += "}";
+    if (i < NUM_SAMPLES - 1) jsonData += ",";
+  }
+  jsonData += "]";
+
+  // Send over UDP
+  udp.beginPacket(destIP, destPort);
+  udp.print(jsonData);
+  udp.endPacket();
+
+  Serial.printf("Sent %d samples (%d bytes) to %s:%d\n",
+                NUM_SAMPLES, jsonData.length(), destIP, destPort);
+
+  bufferReady = false;
+}
 ```
 
 ### 3.2 Desktop simulator (CSV → UDP)
