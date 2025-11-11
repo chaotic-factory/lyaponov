@@ -42,9 +42,55 @@
               <ul class="current">
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Home</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#commands">Commands</a>
+    <li class="toctree-l2"><a class="reference internal" href="#0-tldr-quickstart">0) TL;DR Quickstart</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#project-layout">Project layout</a>
+    <li class="toctree-l2"><a class="reference internal" href="#1-cli-reference">1) CLI Reference</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-configure-the-frontend-websocket">2) Configure the Frontend (WebSocket)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3-stream-from-hardware-udp-server-websocket">3) Stream from Hardware (UDP → Server → WebSocket)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#31-microcontroller-example-wifi-udp">3.1 Microcontroller example (Wi‑Fi UDP)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#32-desktop-simulator-csv-udp">3.2 Desktop simulator (CSV → UDP)</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4-featurebyfeature-walkthrough-with-images">4) Feature‑by‑Feature Walkthrough (with Images)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#41-overview">4.1 Overview</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#42-channels-options-lyapunov">4.2 Channels, Options &amp; Lyapunov</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#43-visualizations">4.3 Visualizations</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#44-recording-playback">4.4 Recording &amp; Playback</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#45-analysis">4.5 Analysis</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#46-training">4.6 Training</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5-backend-api-for-integrators">5) Backend API (for Integrators)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#51-health">5.1 Health</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#52-live-stream">5.2 Live stream</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#53-train-sindy">5.3 Train SINDy</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#54-train-reservoir-echo-state-network">5.4 Train Reservoir (Echo State Network)</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#6-poweruser-tips">6) Power‑User Tips</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#7-installation-dependencies">7) Installation &amp; Dependencies</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#8-mkdocs-site-for-opensource-docs">8) MkDocs Site (for Open‑Source Docs)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#9-repo-layout-short">9) Repo Layout (short)</a>
     </li>
     </ul>
                 </li>
@@ -76,21 +122,237 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="welcome-to-mkdocs">Welcome to MkDocs</h1>
-<p>For full documentation visit <a href="https://www.mkdocs.org">mkdocs.org</a>.</p>
-<h2 id="commands">Commands</h2>
-<ul>
-<li><code>mkdocs new [dir-name]</code> - Create a new project.</li>
-<li><code>mkdocs serve</code> - Start the live-reloading docs server.</li>
-<li><code>mkdocs build</code> - Build the documentation site.</li>
-<li><code>mkdocs -h</code> - Print help message and exit.</li>
-</ul>
-<h2 id="project-layout">Project layout</h2>
-<pre><code>mkdocs.yml    # The configuration file.
-docs/
-    index.md  # The documentation homepage.
-    ...       # Other markdown pages, images and other files.
+                <h1 id="lyapunov-dashboard-user-guide-github">Lyapunov Dashboard — User Guide (GitHub)</h1>
+<p><img src="images/lyapunov-logo.png" alt="Lyapunov Logo" width="120" align="left" style="margin-right:14px; margin-bottom:6px"/></p>
+<p>A realtime, interactive dashboard for exploring nonlinear dynamics, recording multichannel time series, and training models (SINDy / Reservoir Computing). This GitHub-facing guide focuses on <strong>getting started</strong>, <strong>CLI usage</strong>, <strong>configuration</strong>, and a <strong>feature‑by‑feature walkthrough with images</strong>.</p>
+<blockquote>
+<p><strong>Version:</strong> 1.0 · <strong>Last updated:</strong> {{ git_revision_date_localized or "—" }}</p>
+</blockquote>
+<p><br clear="both"/></p>
+<hr />
+<h2 id="0-tldr-quickstart">0) TL;DR Quickstart</h2>
+<pre><code class="language-bash"># Install the Python package
+pip install lyapunov-lab
+
+# Launch the app (CLI)
+lyapunov-lab start
 </code></pre>
+<ul>
+<li>Opens the dashboard locally with sensible defaults.</li>
+<li>For remote/container deployments, see <strong>Configuration</strong> below.</li>
+</ul>
+<hr />
+<h2 id="1-cli-reference">1) CLI Reference</h2>
+<p>The package exposes a single top-level command with one option (port). The CLI boots the <strong>FastAPI backend</strong> (and serves the prebuilt frontend if available).</p>
+<pre><code class="language-bash"># Start the backend (FastAPI via uvicorn)
+lyapunov-lab start --port 3000
+
+# Option details
+--port  Port to run the backend server on (default: 3000)
+</code></pre>
+<p>Under the hood this launches:</p>
+<pre><code class="language-python">uvicorn lyapunov_lab.backend.app:app --host 0.0.0.0 --port &lt;PORT&gt;
+</code></pre>
+<blockquote>
+<p>The frontend static build is auto-mounted at <code>/</code> if found at <code>lyapunov_lab/frontend/out</code>.</p>
+</blockquote>
+<hr />
+<h2 id="2-configure-the-frontend-websocket">2) Configure the Frontend (WebSocket)</h2>
+<p>The dashboard consumes a live stream over WebSocket at <strong><code>/api/stream</code></strong> from the backend (same origin by default). If you deploy the frontend separately, point it to your backend origin.</p>
+<p>Recommended snippet in your UI to allow env-based configuration:</p>
+<pre><code class="language-ts">// src/PlaygroundView.tsx
+export const WS_URL =
+  process.env.NEXT_PUBLIC_WS_URL ??
+  (typeof window !== &quot;undefined&quot;
+    ? `ws://${window.location.host}/api/stream`
+    : &quot;ws://localhost:3000/api/stream&quot;);
+</code></pre>
+<blockquote>
+<p>Replace the file path/link to match your repo, e.g. <a href="https://github.com/&lt;org&gt;/&lt;repo&gt;/blob/main/src/PlaygroundView.tsx"><code>src/PlaygroundView.tsx</code></a>.</p>
+</blockquote>
+<hr />
+<h2 id="3-stream-from-hardware-udp-server-websocket">3) Stream from Hardware (UDP → Server → WebSocket)</h2>
+<p><strong>UDP ingestion</strong> → backend buffers the latest batch → pushes to all WebSocket clients at <code>/api/stream</code>.</p>
+<ul>
+<li>UDP listen address: <code>0.0.0.0:5005</code></li>
+<li>Packet format: <strong>JSON array</strong> of objects with <code>x</code>, <code>y</code>, <code>z</code> (you can add <code>t</code>/<code>time</code>/<code>timestamp</code> too)</li>
+</ul>
+<h3 id="31-microcontroller-example-wifi-udp">3.1 Microcontroller example (Wi‑Fi UDP)</h3>
+<pre><code class="language-cpp">// (same as before)
+</code></pre>
+<h3 id="32-desktop-simulator-csv-udp">3.2 Desktop simulator (CSV → UDP)</h3>
+<p>Use the included helper to test without hardware:</p>
+<pre><code class="language-bash">python scripts/simulate_device.py \
+  # expects CSV with columns: x,y,z
+</code></pre>
+<p>Key bits from <code>scripts/simulate_device.py</code>:</p>
+<pre><code class="language-python">UDP_IP = &quot;127.0.0.1&quot;   # change if FastAPI runs elsewhere
+UDP_PORT = 5005         # must match backend
+CSV_PATH = &quot;scripts/logs/lorenz_sample_output.csv&quot;
+SEND_INTERVAL = 0.01
+</code></pre>
+<hr />
+<h2 id="4-featurebyfeature-walkthrough-with-images">4) Feature‑by‑Feature Walkthrough (with Images)</h2>
+<blockquote>
+<p>Place images under <code>docs/images/</code> (or adjust paths). Keep the single logo at top‑left.</p>
+</blockquote>
+<h3 id="41-overview">4.1 Overview</h3>
+<p><img alt="Overall playground view showing all features" src="images/1_playground_overall.png" />
+<em>The main Playground exposes live plots, 3D phase‑space, recording, and playback controls.</em></p>
+<p><img alt="Playground in light mode" src="images/1_playground_overall_light_mode.png" /></p>
+<h3 id="42-channels-options-lyapunov">4.2 Channels, Options &amp; Lyapunov</h3>
+<p><img alt="Select channels (x,y,z), recording &amp; playback buttons; also shows Lyapunov exponent readout" src="images/2_playground_options.png" /></p>
+<ul>
+<li>Toggle X / Y / Z channels</li>
+<li>Adjust Scale and Interpolation (none / linear / spline)</li>
+<li>Start/stop Recording; set Baseline</li>
+<li>Live Lyapunov exponent &amp; state classifier <em>(Stable / Periodic / Quasi‑Periodic / Chaotic)</em></li>
+</ul>
+<h3 id="43-visualizations">4.3 Visualizations</h3>
+<p><strong>Time series (fullscreen)</strong>
+<img alt="Fullscreen time series plot of x, y, z vs t" src="images/2_playground_timeseries_fullscreen.png" />
+<em>Click the maximize button to expand to fullscreen.</em></p>
+<p><strong>Phase‑space trajectory (fullscreen)</strong>
+<img alt="Fullscreen phase-space 3D trajectory / attractor view" src="images/2_playground_trajectory_phase_space_fullscreen.png" />
+<em>Orbit to rotate • scroll to zoom • right-drag to pan.</em></p>
+<h3 id="44-recording-playback">4.4 Recording &amp; Playback</h3>
+<p><img alt="How to start recording" src="images/3_recording_mode_start.png" />
+<img alt="Enter a name when saving" src="images/3_recording_mode_save_screen_enter_name.png" />
+<img alt="Saving recording with custom parameters supported" src="images/3_recording_mode_save_screen_custom_param.png" /></p>
+<blockquote>
+<p>Attach system parameters (e.g., Lorenz σ, ρ, β) and initial state.</p>
+</blockquote>
+<p><img alt="Playback a selected recording" src="images/3_recordings_play_selected_data.png" />
+Floating <strong>Playback Controls</strong> allow play/pause, skip, scrubbing. Timeline in seconds (assuming 100 Hz).</p>
+<h3 id="45-analysis">4.5 Analysis</h3>
+<p><img alt="Bifurcation diagram vs parameter" src="images/plot_bifurcation.png" />
+<em>Visualizes qualitative regime changes (e.g., period-doubling routes to chaos).</em></p>
+<p><img alt="Poincaré map (work in progress)" src="images/plot_poincare.png" />
+<em>Section crossings reveal periodic / quasi‑periodic / chaotic structure.</em></p>
+<h3 id="46-training">4.6 Training</h3>
+<p><img alt="Training page showing multiple model options" src="images/train_page.png" />
+<img alt="Model selection (SINDy / Reservoir)" src="images/train_model_options.png" />
+<img alt="Prediction vs real overlay and one‑to‑one playback" src="images/train_prediction_vs_real.png" />
+<img alt="Training metrics: error, sparsity, etc." src="images/train_metrics.png" />
+<img alt="Equation discovery for SINDy" src="images/train_eq_discovery.png" /></p>
+<hr />
+<h2 id="5-backend-api-for-integrators">5) Backend API (for Integrators)</h2>
+<p><strong>Base URL:</strong> <code>http://&lt;host&gt;:&lt;port&gt;</code> (default port from CLI is <code>3000</code>)</p>
+<h3 id="51-health">5.1 Health</h3>
+<ul>
+<li><code>GET /api/health</code> → <code>{ status: "ok", sindy: &lt;bool&gt; }</code></li>
+</ul>
+<h3 id="52-live-stream">5.2 Live stream</h3>
+<ul>
+<li><code>WS /api/stream</code> → pushes <code>{ samples: [ {x,y,z,(t?)}... ], timestamp }</code></li>
+</ul>
+<h3 id="53-train-sindy">5.3 Train SINDy</h3>
+<ul>
+<li>
+<p><code>POST /api/sindy/train</code> → <code>SindyTrainResponse</code></p>
+</li>
+<li>
+<p>Accepts a <code>recording</code> (x,y,z time series) and <code>axes</code> mapping.</p>
+</li>
+<li>Uses <strong>PySINDy</strong> when available; falls back to linear model otherwise.</li>
+<li>Returns equations, metrics (MSE, R², sparsity), per‑equation feature table, and aligned prediction.</li>
+</ul>
+<h3 id="54-train-reservoir-echo-state-network">5.4 Train Reservoir (Echo State Network)</h3>
+<ul>
+<li>
+<p><code>POST /api/rc/train</code> → <code>SindyTrainResponse</code></p>
+</li>
+<li>
+<p>Requires <strong>reservoirpy</strong>. Teacher forcing on train split; autonomous rollout on test split.</p>
+</li>
+<li>Returns ESN summary in <code>equations</code>, plus metrics over the test region.</li>
+</ul>
+<p><strong>Models / Schemas:</strong> <code>Recording</code>, <code>Axes</code>, <code>SindyTrainRequest</code>, <code>SindyTrainResponse</code>, <code>Metrics</code>, <code>FeatureInfo</code> (see backend code for full definitions).</p>
+<hr />
+<h2 id="6-poweruser-tips">6) Power‑User Tips</h2>
+<ul>
+<li><strong>Orbit controls</strong> (3D): drag to orbit • scroll to zoom • right‑drag to pan.</li>
+<li><strong>Fullscreen</strong>: click the maximize icon on charts.</li>
+<li><strong>Baselining</strong>: capture a baseline segment to drive anomaly scoring.</li>
+<li><strong>Recording format (frontend)</strong>: stored in <code>localStorage</code> <code>nld_recordings</code> with <code>name</code>, <code>timestamp</code>, <code>duration</code>, <code>data: Array&lt;Record&lt;string, number&gt;&gt;</code>, optional <code>parameters</code>, <code>initialState</code>.</li>
+</ul>
+<hr />
+<h2 id="7-installation-dependencies">7) Installation &amp; Dependencies</h2>
+<pre><code class="language-bash"># from PyPI
+pip install lyapunov-lab
+
+# run backend
+lyapunov-lab start --port 3000
+</code></pre>
+<p><strong>Optional accelerators</strong> (detected at runtime):</p>
+<pre><code class="language-bash">pip install pysindy reservoirpy scikit-learn
+</code></pre>
+<blockquote>
+<p>If PySINDy/ReservoirPy aren’t installed, the backend will gracefully fall back to the linear baseline or disable the ESN endpoint.</p>
+</blockquote>
+<hr />
+<h2 id="8-mkdocs-site-for-opensource-docs">8) MkDocs Site (for Open‑Source Docs)</h2>
+<p>Add a <code>docs/mkdocs.yml</code> (example below) and keep pages in <code>docs/</code>. This keeps the README lean while publishing rich docs.</p>
+<pre><code class="language-yaml">site_name: Lyapunov Lab
+repo_url: https://github.com/&lt;org&gt;/&lt;repo&gt;
+repo_name: &lt;org&gt;/&lt;repo&gt;
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - content.code.copy
+    - toc.integrate
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Features: features.md
+  - Configuration: configuration.md
+  - Backend API: backend-api.md
+  - Streaming (Hardware/UDP): streaming.md
+  - CLI: cli.md
+  - Troubleshooting: troubleshooting.md
+  - Contributing: contributing.md
+</code></pre>
+<p>Suggested page stubs:</p>
+<ul>
+<li><code>docs/index.md</code> — project pitch + single left logo.</li>
+<li><code>docs/quickstart.md</code> — <code>pip install</code> + <code>lyapunov-lab start</code> + simulator.</li>
+<li><code>docs/features.md</code> — the walkthrough with images (Section 4).</li>
+<li><code>docs/configuration.md</code> — env vars, WS URL, static mount, ports.</li>
+<li><code>docs/backend-api.md</code> — endpoints &amp; schemas (Section 5).</li>
+<li><code>docs/streaming.md</code> — UDP formats, microcontroller &amp; CSV simulator.</li>
+<li><code>docs/cli.md</code> — command/flags.</li>
+<li><code>docs/troubleshooting.md</code> — common pitfalls (CORS, UDP blocked, CSV format).</li>
+<li><code>docs/contributing.md</code> — dev setup, code style, tests, release.</li>
+</ul>
+<blockquote>
+<p>Keep <strong>build commands</strong> for maintainers in <code>CONTRIBUTING.md</code>; the public docs describe <em>usage</em>, not how to build the docs themselves.</p>
+</blockquote>
+<hr />
+<h2 id="9-repo-layout-short">9) Repo Layout (short)</h2>
+<pre><code>lyapunov_lab/
+  backend/app.py        # FastAPI app, UDP→WS bridge, SINDy &amp; ESN endpoints
+  frontend/out/         # static export served at '/'
+  cli.py                # exposes `lyapunov-lab` CLI
+scripts/
+  simulate_device.py    # CSV→UDP sender for local testing
+docs/
+  images/               # screenshots used in Features section
+  mkdocs.yml            # site config (example above)
+</code></pre>
+<p><strong>Citation (circuit basis used in examples):</strong></p>
+<ul>
+<li><a href="https://www.sciencedirect.com/science/article/pii/S3050517825000711">https://www.sciencedirect.com/science/article/pii/S3050517825000711</a></li>
+<li><a href="https://www.sciencedirect.com/science/article/abs/pii/S3050517825000711">https://www.sciencedirect.com/science/article/abs/pii/S3050517825000711</a></li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> As requested, the README omits maintainer‑oriented <em>build‑the‑docs</em> steps, but the <strong>documentation site</strong> structure above is ready for publishing.</p>
+</blockquote>
               
             </div>
           </div><footer>
@@ -134,5 +396,5 @@ docs/
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2025-11-07 22:50:32.949474+00:00
+Build Date UTC : 2025-11-11 10:20:25.033497+00:00
 -->
